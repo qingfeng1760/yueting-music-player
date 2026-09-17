@@ -23,17 +23,20 @@ beforeEach(async () => {
   await store.importSongs(SONGS);
 });
 
-test('播放反哺：多次播放后该歌曲在推荐列表中排名上升', async () => {
+test('播放反哺：多次播放后该歌曲排到推荐列表首位', async () => {
   const before = (await rankList()).map((x) => x.song.title);
   const songs = await store.listSongs();
   const target = songs.find((s) => s.title === '丁');
+  const rankBefore = before.indexOf('丁');
   for (let i = 0; i < 5; i++) await store.recordPlay(target.id);
   const after = (await rankList()).map((x) => x.song.title);
+  const rankAfter = after.indexOf('丁');
+  // 5 次播放的得分（约 5 分）远高于抖动上限（3 分），必然排到首位
+  assert.equal(after[0], '丁', `多次播放后应排到首位，实际顺序：${after}`);
   assert.ok(
-    after.indexOf('丁') < before.indexOf('丁'),
-    `期望「丁」排名上升：前 ${before.indexOf('丁')} → 后 ${after.indexOf('丁')}（列表：${after}）`,
+    rankAfter <= rankBefore,
+    `排名不应下降：前 ${rankBefore} → 后 ${rankAfter}（列表：${after}）`,
   );
-  assert.equal(after[0], '丁', '多次播放后应排到首位');
 });
 
 test('收藏反哺：收藏后带「♥收藏」标签且进入前列', async () => {

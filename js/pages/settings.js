@@ -1,7 +1,8 @@
 // 数据与设置：统计 / 存储 / 备份 / 设置项 / 预留云同步
 import { store } from '../core/store.js';
 import { bus } from '../core/bus.js';
-import { applyTheme, getThemePref, fmtTime } from '../core/util.js';
+import { applyTheme, getThemePref, fmtTime, applyAccent } from '../core/util.js';
+import { PRESET_ACCENTS, deriveAccent, normalizeHex, DEFAULT_ACCENT } from '../core/theme.js';
 import { showToast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { pageHeader, bindBack } from '../ui/nav.js';
@@ -37,6 +38,8 @@ export async function render(root) {
       store.getAllSettings(),
     ]);
     const theme = settings.theme || getThemePref() || 'system';
+    const accent = normalizeHex(settings.accent) || ''; // 空 = 默认色
+    const accentNow = accent || DEFAULT_ACCENT;
     const defaultMode = settings.defaultMode || 'order';
     const recordHistory = settings.recordHistory !== false;
     const maxPlay = Math.max(1, ...stats.top10.map((t) => t.playCount));
@@ -92,6 +95,23 @@ export async function render(root) {
             <option value="system" ${theme === 'system' ? 'selected' : ''}>跟随系统</option>
           </select>
         </div>
+        <div class="setting-col">
+          <div class="setting-col-head">
+            <span>界面颜色</span>
+            <span class="accent-current" id="accent-current" style="background:${accentNow}"></span>
+          </div>
+          <div class="accent-swatches" id="accent-swatches">
+            ${PRESET_ACCENTS.map((c) => `
+              <button class="swatch ${c === accentNow ? 'active' : ''}" data-color="${c}"
+                      style="background:${c}" aria-label="使用颜色 ${c}"></button>`).join('')}
+            <label class="swatch swatch-custom" title="自定义颜色">
+              <span>＋</span>
+              <input type="color" id="accent-custom" value="${accentNow}" aria-label="自定义界面颜色">
+            </label>
+            <button class="btn" id="accent-reset" style="padding:6px 12px;font-size:12.5px;margin-left:auto">恢复默认</button>
+          </div>
+          <div class="setting-col-hint">整站按钮、标签和高亮都会使用这个颜色；文字会自动调整为可读的深浅。</div>
+        </div>
         <div class="setting-row">
           <span>默认播放模式</span>
           <select class="sort-select" id="set-mode">
@@ -125,6 +145,34 @@ export async function render(root) {
       await store.setSetting('theme', v);
       applyTheme(v);
       showToast(`主题已切换为${{ light: '浅色', dark: '深色', system: '跟随系统' }[v]}`);
+      await draw(); // 深浅主题下标签配色变化，重绘预览
+    };
+
+    // 界面颜色：预设色板
+    body.querySelectorAll('.swatch[data-color]').forEach((btn) => {
+      btn.onclick = async () => {
+        const color = btn.dataset.color;
+        await store.setSetting('accent', color);
+        applyAccent(color);
+        await draw();
+        showToast('界面颜色已更新');
+      };
+    });
+    // 界面颜色：自定义取色
+    body.querySelector('#accent-custom').onchange = async (e) => {
+      const color = normalizeHex(e.target.value);
+      if (!color) { showToast('颜色格式不正确'); return; }
+      await store.setSetting('accent', color);
+      applyAccent(color);
+      await draw();
+      showToast('已应用自定义颜色');
+    };
+    // 恢复默认色
+    body.querySelector('#accent-reset').onclick = async () => {
+      await store.setSetting('accent', '');
+      applyAccent('');
+      await draw();
+      showToast('已恢复默认颜色');
     };
     body.querySelector('#set-mode').onchange = async (e) => {
       await store.setSetting('defaultMode', e.target.value);

@@ -1,4 +1,4 @@
-import { initTheme } from './core/util.js';
+import { initTheme, applyAccent, getAccentPref } from './core/util.js';
 import { store } from './core/store.js';
 import { IDBAdapter } from './core/db.js';
 import { clearDock, updateBottomBars } from './ui/dock.js';
@@ -53,6 +53,7 @@ initTheme();
 const dbName = new URLSearchParams(location.search).get('db') || undefined;
 const adapter = new IDBAdapter(dbName);
 await store.init(adapter);
+applyAccent(await store.getSetting('accent', getAccentPref())); // 自定义界面颜色
 if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
   window.__adapter = adapter; // 本地开发/验收时便于清库
 }

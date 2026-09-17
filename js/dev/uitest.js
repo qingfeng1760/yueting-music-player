@@ -124,14 +124,28 @@ check('多选操作条不遮挡底部导航', async () => {
   assert(doc.querySelector('#dock .fab'), '退出多选后应恢复导入悬浮按钮');
 });
 
+/** 轮询等待条件成立（默认最多 4 秒），用于等待异步渲染/持久化生效 */
+async function waitFor(fn, timeout = 4000, interval = 150) {
+  const t0 = Date.now();
+  for (;;) {
+    let v;
+    try { v = fn(); } catch { v = false; }
+    if (v) return v;
+    if (Date.now() - t0 > timeout) throw new Error('等待超时：条件未在期限内成立');
+    await sleep(interval);
+  }
+}
+
 /** 直接以某个地址重新加载 iframe（模拟直接打开二级页面链接） */
 async function reloadAt(hash) {
-  frame.src = `index.html?db=yueting-uitest${hash}`;
-  await sleep(1500);
+  // 加时间戳参数：相同 URL 的 src 赋值会被浏览器忽略，导致「重载」失效
+  frame.src = `index.html?db=yueting-uitest&t=${Date.now()}${hash}`;
+  await sleep(1200);
   await appReady();
   doc = frame.contentDocument;
   win = frame.contentWindow;
-  await sleep(400);
+  await sleep(300);
+  await injectDev(); // 重载后页面上下文是新的，需要重新注入测试辅助模块
 }
 
 /* ============ 检查项 ============ */
@@ -170,6 +184,49 @@ check('直接打开二级页面时，返回按钮回退到兜底页面', async (
   await sleep(700);
   assert(win.location.hash === '#/me', `深链打开时返回应回退到 #/me，实际 ${win.location.hash}`);
   await reloadAt('#/home');
+});
+
+check('自定义界面颜色：立即生效并持久化', async () => {
+  await resetData();
+  await nav('#/settings');
+  const target = '#8e24aa';
+  const swatch = doc.querySelector(`.swatch[data-color="${target}"]`);
+  assert(swatch, '设置页应有预设色板');
+  swatch.click();
+  const primaryOf = () => win.getComputedStyle(doc.documentElement).getPropertyValue('--primary').trim();
+  await waitFor(() => primaryOf().toLowerCase() === target, 3000);
+  // 主按钮应跟着变色
+  const primaryBtn = doc.querySelector('.btn-primary');
+  if (primaryBtn) {
+    const bg = win.getComputedStyle(primaryBtn).backgroundColor;
+    assert(bg.includes('142, 36, 170'), `主按钮背景未跟随主色：${bg}`);
+  }
+  // 重新加载后仍保持（持久化）
+  await reloadAt('#/settings');
+  await waitFor(() => primaryOf().toLowerCase() === target, 4000);
+  const saved = await win.__store.getSetting('accent');
+  assert(saved === target, `设置未持久化：${saved}`);
+});
+
+check('自定义界面颜色：恢复默认色', async () => {
+  await resetData();
+  await nav('#/settings');
+  doc.querySelector(`.swatch[data-color="#e53935"]`)?.click();
+  const primaryOf = () => win.getComputedStyle(doc.documentElement).getPropertyValue('--primary').trim();
+  await waitFor(() => primaryOf().toLowerCase() === '#e53935', 3000);
+  doc.querySelector('#accent-reset').click();
+  await waitFor(() => primaryOf().toLowerCase() === '#1e88e5', 3000);
+});
+
+check('自定义界面颜色：任意颜色下按钮文字保持可读', async () => {
+  await resetData();
+  await win.__store.setSetting('accent', '#ffeb3b');
+  await reloadAt('#/settings');
+  const varOf = (name) => win.getComputedStyle(doc.documentElement).getPropertyValue(name).trim();
+  await waitFor(() => varOf('--primary').toLowerCase() === '#ffeb3b', 4000);
+  assert(varOf('--on-primary') === '#1c1e21', `浅色主色上文字应转为深色，实际 ${varOf('--on-primary')}`);
+  const chipText = varOf('--chip-text');
+  assert(/^#[0-9a-f]{6}$/i.test(chipText), `标签文字色应为合法颜色，实际 ${chipText}`);
 });
 
 /* ============ 运行 ============ */

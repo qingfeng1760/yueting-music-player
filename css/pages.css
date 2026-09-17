@@ -8,6 +8,25 @@
 .top-bar { flex: 1; height: 7px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
 .top-bar > i { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
 .top-count { width: 44px; text-align: right; color: var(--text-2); font-size: 11.5px; }
+/* 界面颜色自定义 */
+.setting-col { padding: 12px 2px; border-bottom: 1px solid var(--divider); }
+.setting-col-head { display: flex; align-items: center; justify-content: space-between; font-size: 14.5px; margin-bottom: 10px; }
+.accent-current { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 1px var(--divider); }
+.accent-swatches { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.swatch {
+  width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
+  box-shadow: 0 0 0 1px var(--divider);
+  transition: transform .12s;
+}
+.swatch:hover { transform: scale(1.08); }
+.swatch.active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
+.swatch-custom {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--text-2); font-size: 15px;
+}
+.swatch-custom input[type="color"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; border: none; }
+.setting-col-hint { font-size: 12px; color: var(--text-2); margin-top: 10px; line-height: 1.5; }
+
 .setting-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 2px; border-bottom: 1px solid var(--divider); font-size: 14.5px;

@@ -64,10 +64,32 @@ export function escapeHtml(str) {
 }
 
 /* ===== 主题 ===== */
+import { deriveAccent } from './theme.js';
+
 const THEME_KEY = 'yt_theme';
+const ACCENT_KEY = 'yt_accent';
 
 export function getThemePref() {
   return localStorage.getItem(THEME_KEY) || 'system';
+}
+
+export function getAccentPref() {
+  return localStorage.getItem(ACCENT_KEY) || '';
+}
+
+/** 应用界面主色（自定义色或默认色），并把派生变量写入 :root */
+export function applyAccent(color) {
+  const stored = color ?? getAccentPref();
+  if (color !== undefined) localStorage.setItem(ACCENT_KEY, stored || '');
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const a = deriveAccent(stored, isDark ? 'dark' : 'light');
+  const s = document.documentElement.style;
+  s.setProperty('--primary', a.primary);
+  s.setProperty('--primary-strong', a.primaryStrong);
+  s.setProperty('--on-primary', a.onPrimary);
+  s.setProperty('--chip-bg', a.chipBg);
+  s.setProperty('--chip-text', a.chipText);
+  return a;
 }
 
 export function applyTheme(pref) {
@@ -77,6 +99,7 @@ export function applyTheme(pref) {
     dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  applyAccent(); // 深浅主题下标签配色不同，需要跟着重算
 }
 
 export function initTheme() {
