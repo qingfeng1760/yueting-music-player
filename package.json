@@ -6,9 +6,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "serve": "npx http-server -p 8080 -c-1"
+    "serve": "npx http-server -p 8123 -c-1",
+    "build:dist": "node scripts/build-dist.mjs",
+    "icon": "node scripts/gen-icon.mjs && tauri icon icon-src.png",
+    "app:dev": "tauri dev",
+    "app:build": "tauri build"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "fake-indexeddb": "^6.0.0"
   }
 }

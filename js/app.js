@@ -71,3 +71,7 @@ mountMiniPlayer();
 window.addEventListener('hashchange', render);
 window.addEventListener('resize', updateBottomBars);
 render();
+// 启动完成：通过 Tauri IPC 向主进程报告（打包版用于验证；浏览器版无 __TAURI__ 自动跳过）
+window.__TAURI__?.core?.invoke('report', {
+  msg: `应用已就绪 @${location.host}（${document.title}）`,
+})?.catch?.(() => {});

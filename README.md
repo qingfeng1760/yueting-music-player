@@ -47,6 +47,32 @@ await window.__seedTone('测试音'); // 生成一段真实可播放的 WAV
 await window.__wipe();            // 清空全部本地数据
 ```
 
+## 打包成 Windows 桌面应用（Tauri，可选）
+
+已配置 Tauri v2，可打包成不依赖浏览器的独立 exe。
+
+**一次性前置条件**：
+1. Rust 工具链：`winget install Rustlang.Rustup`（或用国内镜像安装，见 `scripts/` 注释；建议在 `~/.cargo/config.toml` 配置 crates.io 镜像加速）
+2. MSVC 生成工具：`winget install Microsoft.VisualStudio.2022.BuildTools`（需含「C++ 桌面开发」与 Windows SDK）
+3. WebView2 运行时：Windows 10/11 一般自带
+
+**命令**：
+
+```bash
+npm run app:build     # 打包（自动先构建 dist/）
+npm run app:dev       # 开发模式：桌面窗口连接 http://localhost:8123 调试
+npm run build:dist    # 仅生成 dist/（打包用静态资源副本）
+npm run icon          # 重新生成应用图标
+```
+
+**产物**：
+- 绿色版：`src-tauri/target/release/yueting.exe`（约 8.7 MB，双击即用）
+- 安装包：`src-tauri/target/release/bundle/nsis/悦听_1.0.0_x64-setup.exe`（约 1.9 MB，NSIS 向导安装）
+
+**数据说明（重要）**：桌面版的数据存在自己的存储空间（来源 `http://tauri.localhost`），与浏览器版**相互独立**。从浏览器版迁移：先在浏览器里「数据与设置 → 导出备份」，在桌面版导入备份，再重新导入音乐文件夹（备份不含音频本体）。
+
+**验证方式**：桌面版启动后，页面 JS 会通过 Tauri IPC 调用 `report` 命令，在主进程日志输出「[页面报告] 应用已就绪 @tauri.localhost」。`dist/index.html` 还注入了启动诊断：若加载或脚本出错，错误信息会显示在窗口标题上。
+
 ## 已知限制
 
 - 音频格式以浏览器解码能力为准（Chrome/Edge 支持 mp3 / m4a / flac / ogg / wav）。
