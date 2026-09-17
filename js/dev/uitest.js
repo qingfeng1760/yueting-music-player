@@ -229,6 +229,26 @@ check('自定义界面颜色：任意颜色下按钮文字保持可读', async (
   assert(/^#[0-9a-f]{6}$/i.test(chipText), `标签文字色应为合法颜色，实际 ${chipText}`);
 });
 
+check('首页左上角显示用户头像，点击进入「我的」', async () => {
+  await resetData();
+  await nav('#/home');
+  const avatar = doc.querySelector('#page .home-avatar');
+  assert(avatar, '首页左上角应有头像');
+  const a = rect(avatar);
+  const pageR = rect(doc.getElementById('page'));
+  assert(a.left - pageR.left < 24, `头像应贴左上角（left=${Math.round(a.left - pageR.left)}px）`);
+  assert(a.top - pageR.top < 30, `头像应贴左上角（top=${Math.round(a.top - pageR.top)}px）`);
+  assert(a.width >= 40 && a.height >= 40, '头像尺寸过小，不易点击');
+  // 头像在问候语左侧
+  const greet = doc.querySelector('#page .home-head-main .page-title');
+  assert(greet, '首页应保留问候语');
+  assert(a.right <= rect(greet).left + 1, '头像应位于问候语左侧');
+  // 点击进入我的
+  avatar.click();
+  await sleep(700);
+  assert(win.location.hash === '#/me', `点击头像应进入我的，实际 ${win.location.hash}`);
+});
+
 /* ============ 运行 ============ */
 (async () => {
   await appReady();

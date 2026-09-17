@@ -21,14 +21,18 @@ export async function render(root) {
   const now = new Date();
   const dateText = `${now.getMonth() + 1}月${now.getDate()}日`;
 
-  root.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-      <h1 class="page-title" style="margin:0">${greeting(now)} 👋</h1>
-      <span style="color:var(--text-2);font-size:13px">${dateText}</span>
+root.innerHTML = `
+    <div class="home-head">
+      <button class="home-avatar" id="home-avatar" aria-label="进入我的">🎧</button>
+      <div class="home-head-main">
+        <h1 class="page-title" style="margin:0">${greeting(now)} 👋</h1>
+        <div class="home-head-sub">本地用户 · ${dateText}</div>
+      </div>
     </div>
     <div id="home-body"></div>`;
 
   const body = root.querySelector('#home-body');
+  root.querySelector('#home-avatar').onclick = () => { location.hash = '#/me'; };
 
   async function draw() {
     const songs = await store.listSongs();
