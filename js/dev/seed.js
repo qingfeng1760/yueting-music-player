@@ -1,8 +1,10 @@
 // 开发辅助：合成测试数据（仅手动调用，不参与应用逻辑）
 import { store } from '../core/store.js';
 import { readMeta } from '../core/meta.js';
+import { player } from '../core/player.js';
 
 window.__readMeta = readMeta;
+window.__player = player;
 
 /** 构造一个带 ID3v2.3 标签（UTF-8）的 MP3 文件，用于验证元数据解析 */
 window.__makeId3Mp3 = function (title = '标签歌名', artist = '标签歌手', album = '标签专辑') {

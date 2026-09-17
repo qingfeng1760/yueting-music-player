@@ -3,6 +3,7 @@ import { player } from '../core/player.js';
 import { bus } from '../core/bus.js';
 import { store } from '../core/store.js';
 import { escapeHtml } from '../core/util.js';
+import { updateBottomBars } from './dock.js';
 
 let mounted = false;
 
@@ -30,13 +31,14 @@ export function mountMiniPlayer() {
   const paint = () => {
     const s = player.currentSong;
     host.style.display = s ? 'block' : 'none';
-    if (!s) return;
+    if (!s) { updateBottomBars(); return; }
     host.querySelector('#mini-title').textContent = s.title;
     host.querySelector('#mini-artist').textContent = s.artist;
     const cover = host.querySelector('#mini-cover');
     cover.innerHTML = s.cover ? `<img src="${s.cover}" alt="">` : '🎵';
     playBtn.textContent = player.playing ? '⏸' : '▶';
     if (player.playing) mini.classList.add('is-playing'); else mini.classList.remove('is-playing');
+    updateBottomBars(); // 迷你条出现/消失会改变底部占位，悬浮层需要跟着挪
   };
 
   const paintProgress = () => {

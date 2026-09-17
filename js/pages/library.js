@@ -9,6 +9,7 @@ import { actionSheet } from '../ui/sheet.js';
 import { playlistPicker } from '../ui/playlistPicker.js';
 import { showSongActions } from '../ui/songActions.js';
 import { renderSongList } from '../ui/songlist.js';
+import { setDock, clearDock, dockEl } from '../ui/dock.js';
 
 async function getPlayer() {
   try {
@@ -39,8 +40,11 @@ export async function render(root, tab = 'songs') {
 
   async function renderBody() {
     if (tab === 'songs') await renderSongsTab(body);
-    else if (tab === 'favorites') await renderFavoritesTab(body);
-    else await renderPlaylistsTab(body);
+    else {
+      clearDock(); // 收藏/歌单页签不需要导入悬浮按钮
+      if (tab === 'favorites') await renderFavoritesTab(body);
+      else await renderPlaylistsTab(body);
+    }
   }
   await renderBody();
   return () => unsubs.forEach((u) => u());
@@ -65,14 +69,11 @@ async function renderSongsTab(body) {
     <div id="lib-count" class="page-sub" style="margin:0 0 8px"></div>
     <div id="lib-list"></div>
     <input type="file" id="f-files" multiple accept="audio/*,.mp3,.m4a,.flac,.ogg,.wav,.aac" hidden>
-    <input type="file" id="f-folder" webkitdirectory hidden>
-    <button class="fab" id="lib-import">＋ 导入音乐</button>
-    <div id="batch-holder"></div>`;
+    <input type="file" id="f-folder" webkitdirectory hidden>`;
 
   const listEl = body.querySelector('#lib-list');
   const countEl = body.querySelector('#lib-count');
   const importPanel = body.querySelector('#import-panel');
-  const batchHolder = body.querySelector('#batch-holder');
   let hearts = new Set(await store.listFavoriteIds());
   let playingId = null;
   try { const { player } = await import('../core/player.js'); playingId = player.currentSongId; } catch { /* 未就绪 */ }
@@ -102,9 +103,22 @@ async function renderSongsTab(body) {
     paintBatch();
   }
 
+// 悬浮按钮挂到底部悬浮层（位于迷你播放条与 Tab 栏之上，不会遮挡它们）
+  const paintFab = () => {
+    setDock('<button class="fab" id="lib-import">＋ 导入音乐</button>');
+    dockEl()?.querySelector('#lib-import')?.addEventListener('click', async () => {
+      const v = await actionSheet('导入本地音乐', [
+        { label: '📄 选择音乐文件', value: 'files' },
+        { label: '📁 选择整个文件夹', value: 'folder' },
+      ]);
+      if (v === 'files') fileInput.click();
+      if (v === 'folder') folderInput.click();
+    });
+  };
+
   function paintBatch() {
-    if (!state.selectable) { batchHolder.innerHTML = ''; return; }
-    batchHolder.innerHTML = `
+    if (!state.selectable) { paintFab(); return; }
+    setDock(`
       <div class="batchbar">
         <button data-b="all">☑ 全选</button>
         <button data-b="play">▶ 播放</button>
@@ -112,8 +126,10 @@ async function renderSongsTab(body) {
         <button data-b="fav">♥ 收藏</button>
         <button data-b="del" class="danger">🗑 删除</button>
         <button data-b="cancel">✕</button>
-      </div>`;
-    batchHolder.querySelector('.batchbar').onclick = async (e) => {
+      </div>`);
+    const bar = dockEl()?.querySelector('.batchbar');
+    if (!bar) return;
+    bar.onclick = async (e) => {
       const act = e.target.closest('[data-b]')?.dataset.b;
       if (!act) return;
       if (act === 'cancel') { state.selectable = false; state.selected.clear(); body.querySelector('#lib-multi').textContent = '多选'; await reload(); return; }
@@ -166,14 +182,6 @@ async function renderSongsTab(body) {
   // 导入
   const fileInput = body.querySelector('#f-files');
   const folderInput = body.querySelector('#f-folder');
-  body.querySelector('#lib-import').addEventListener('click', async () => {
-    const v = await actionSheet('导入本地音乐', [
-      { label: '📄 选择音乐文件', value: 'files' },
-      { label: '📁 选择整个文件夹', value: 'folder' },
-    ]);
-    if (v === 'files') fileInput.click();
-    if (v === 'folder') folderInput.click();
-  });
   const handleFiles = async (e) => {
     const files = e.target.files;
     e.target.value = '';

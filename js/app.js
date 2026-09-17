@@ -1,6 +1,7 @@
 import { initTheme } from './core/util.js';
 import { store } from './core/store.js';
 import { IDBAdapter } from './core/db.js';
+import { clearDock, updateBottomBars } from './ui/dock.js';
 
 const routes = [
   { re: /^#\/home$/, tab: 'home', load: () => import('./pages/home.js') },
@@ -30,6 +31,7 @@ async function render() {
   try {
     if (typeof currentUnmount === 'function') currentUnmount();
     currentUnmount = null;
+    clearDock(); // 换页时清掉上一页的悬浮元素
     const mod = await route.load();
     pageEl.innerHTML = '';
     pageEl.scrollTop = 0;
@@ -39,11 +41,15 @@ async function render() {
     console.error('页面渲染失败', err);
     pageEl.innerHTML = `<div class="empty"><span class="empty-icon">⚠️</span>页面加载失败：<br>${String(err?.message || err)}</div>`;
   }
+  clearTimeout(window.__dockTimer);
+  window.__dockTimer = setTimeout(updateBottomBars, 0); // 等布局稳定后再定位悬浮层
   setActiveTab(route.tab);
 }
 
 initTheme();
-const adapter = new IDBAdapter();
+// 支持 ?db=xxx 指定数据库名：UI 自动化测试用独立数据库，避免污染真实音乐数据
+const dbName = new URLSearchParams(location.search).get('db') || undefined;
+const adapter = new IDBAdapter(dbName);
 await store.init(adapter);
 if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
   window.__adapter = adapter; // 本地开发/验收时便于清库
@@ -51,4 +57,5 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
 const { mountMiniPlayer } = await import('./ui/miniplayer.js');
 mountMiniPlayer();
 window.addEventListener('hashchange', render);
+window.addEventListener('resize', updateBottomBars);
 render();

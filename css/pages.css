@@ -267,7 +267,7 @@
 .fab {
   position: absolute;
   right: 18px;
-  bottom: 18px;
+  bottom: 14px;
   background: var(--primary);
   color: var(--on-primary);
   border: none;
@@ -278,7 +278,6 @@
   font-family: inherit;
   cursor: pointer;
   box-shadow: var(--shadow-lg);
-  z-index: 40;
 }
 .fab:hover { filter: brightness(1.08); }
 

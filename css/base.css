@@ -45,6 +45,18 @@ body {
 .tabbar a.active { color: var(--primary); }
 .tabbar a span { letter-spacing: .5px; }
 
+/* ===== 悬浮层（位于底部播放条/Tab 栏之上，不遮挡它们） ===== */
+.dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--bottom-bars, 56px);
+  height: 0;
+  pointer-events: none;
+  z-index: 45;
+}
+.dock > * { pointer-events: auto; }
+
 /* ===== 通用组件 ===== */
 .page-title { font-size: 22px; font-weight: 700; margin: 4px 0 14px; }
 .page-sub { color: var(--text-2); font-size: 13px; margin: -10px 0 14px; }
@@ -187,7 +199,7 @@ body {
 .dialog p { margin: 0 0 18px; color: var(--text-2); font-size: 13.5px; line-height: 1.6; }
 .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
-/* ===== 多选批量操作条 ===== */
+/* ===== 多选批量操作条（在 dock 内，避开底部 Tab 栏） ===== */
 .batchbar {
   position: absolute;
   left: 12px;
@@ -200,7 +212,6 @@ body {
   align-items: center;
   justify-content: space-around;
   padding: 8px 6px;
-  z-index: 50;
 }
 .batchbar button {
   border: none;

@@ -8,6 +8,7 @@ import { actionSheet } from '../ui/sheet.js';
 import { playlistPicker } from '../ui/playlistPicker.js';
 import { showSongActions } from '../ui/songActions.js';
 import { renderSongList } from '../ui/songlist.js';
+import { setDock, clearDock, dockEl } from '../ui/dock.js';
 import { PLAYLIST_COLORS } from '../core/store.js';
 
 async function getPlayer() {
@@ -164,17 +165,16 @@ onMore: (song) => showSongActions(song, {
 
   function paintBatch() {
     let bar = root.querySelector('.batchbar');
-    if (!state.selectable) { bar?.remove(); return; }
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.className = 'batchbar';
-      root.appendChild(bar);
-    }
-    bar.innerHTML = `
-      <button data-b="play">▶ 播放</button>
-      <button data-b="rm">➖ 移出歌单</button>
-      <button data-b="fav">♥ 收藏</button>
-      <button data-b="cancel">✕ 取消</button>`;
+    if (!state.selectable) { clearDock(); bar?.remove(); return; }
+    setDock(`
+      <div class="batchbar">
+        <button data-b="play">▶ 播放</button>
+        <button data-b="rm">➖ 移出歌单</button>
+        <button data-b="fav">♥ 收藏</button>
+        <button data-b="cancel">✕ 取消</button>
+      </div>`);
+    bar = dockEl()?.querySelector('.batchbar');
+    if (!bar) return;
     bar.onclick = async (e) => {
       const act = e.target.closest('[data-b]')?.dataset.b;
       if (!act) return;
