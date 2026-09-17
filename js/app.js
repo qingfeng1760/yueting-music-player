@@ -18,6 +18,7 @@ const routes = [
 
 const pageEl = document.getElementById('page');
 let currentUnmount = null;
+let renderToken = 0;
 
 function setActiveTab(tab) {
   document.querySelectorAll('#tabbar a').forEach((a) => {
@@ -30,16 +31,24 @@ async function render() {
   const route = routes.find((r) => r.re.test(hash)) || routes[0];
   const params = hash.match(route.re)?.slice(1) || [];
   recordNav(hash);
+  const token = ++renderToken; // 渲染令牌：用于丢弃过期渲染
   try {
     if (typeof currentUnmount === 'function') currentUnmount();
     currentUnmount = null;
     clearDock(); // 换页时清掉上一页的悬浮元素
     const mod = await route.load();
-    pageEl.innerHTML = '';
+    if (token !== renderToken) return; // 期间又切换了页面，本次渲染作废
+    // 每次渲染使用全新的容器：即使页面内部有较慢的异步写入，
+    // 也只会写到已脱离文档的旧容器里，不会覆盖当前页面
+    const host = document.createElement('div');
+    host.className = 'page-inner';
+    pageEl.replaceChildren(host);
     pageEl.scrollTop = 0;
-    const ret = await mod.render(pageEl, ...params);
+    const ret = await mod.render(host, ...params);
+    if (token !== renderToken) return;
     if (typeof ret === 'function') currentUnmount = ret;
   } catch (err) {
+    if (token !== renderToken) return;
     console.error('页面渲染失败', err);
     pageEl.innerHTML = `<div class="empty"><span class="empty-icon">⚠️</span>页面加载失败：<br>${String(err?.message || err)}</div>`;
   }

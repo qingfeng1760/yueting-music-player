@@ -1,10 +1,12 @@
 // 首页总览：问候 / 随机播放 / 今日推荐 / 模块摘要
 import { store } from '../core/store.js';
 import { bus } from '../core/bus.js';
-import { greeting, escapeHtml } from '../core/util.js';
+import { greeting, escapeHtml, debounce } from '../core/util.js';
 import { pickDaily } from '../core/rec.js';
-import { showToast } from '../ui/toast.js';
+import { searchAll } from '../core/search.js';
 import { showSongActions } from '../ui/songActions.js';
+import { renderSongList } from '../ui/songlist.js';
+import { showToast } from '../ui/toast.js';
 
 async function getPlayer() {
   try {
@@ -17,24 +19,85 @@ async function getPlayer() {
 }
 
 export async function render(root) {
+  const state = { query: '' };
   const unsubs = [bus.on('songs:changed', draw), bus.on('favorites:changed', draw), bus.on('playlists:changed', draw)];
   const now = new Date();
   const dateText = `${now.getMonth() + 1}月${now.getDate()}日`;
 
-root.innerHTML = `
+  root.innerHTML = `
     <div class="home-head">
       <button class="home-avatar" id="home-avatar" aria-label="进入我的">🎧</button>
       <div class="home-head-main">
-        <h1 class="page-title" style="margin:0">${greeting(now)} 👋</h1>
+        <h1 class="page-title" style="margin:0">${greeting(now)} </h1>
         <div class="home-head-sub">本地用户 · ${dateText}</div>
       </div>
+    </div>
+    <div class="home-search">
+      <span class="home-search-icon" aria-hidden="true"></span>
+      <input class="home-search-input" id="home-search" type="search"
+             placeholder="搜索歌名、歌手、专辑或歌单" aria-label="搜索音乐">
+      <button class="icon-btn" id="home-search-clear" hidden aria-label="清空搜索">✕</button>
     </div>
     <div id="home-body"></div>`;
 
   const body = root.querySelector('#home-body');
+  const searchInput = root.querySelector('#home-search');
+  const clearBtn = root.querySelector('#home-search-clear');
   root.querySelector('#home-avatar').onclick = () => { location.hash = '#/me'; };
 
+  /** 按当前是否有关键字，决定展示搜索结果还是首页总览 */
   async function draw() {
+    if (state.query.trim()) await drawSearch();
+    else await drawHome();
+  }
+
+  /* ---------- 搜索结果 ---------- */
+  async function drawSearch() {
+    const [songs, playlists, favoriteIds] = await Promise.all([
+      store.listSongs(), store.listPlaylists(), store.listFavoriteIds(),
+    ]);
+    const res = searchAll({ songs, playlists, query: state.query });
+    if (!res.total) {
+      body.innerHTML = `<div class="empty"><span class="empty-icon">🔍</span>没有找到与「${escapeHtml(res.query)}」相关的音乐<br>换个歌名或歌手试试</div>`;
+      return;
+    }
+    body.innerHTML = `
+      <div class="page-sub" style="margin:0 0 8px">找到 ${res.total} 个结果</div>
+      ${res.playlists.length ? `
+        <div style="margin-bottom:12px">
+          <div class="search-group-title">歌单</div>
+          <div class="search-playlists">
+            ${res.playlists.map((p) => `
+              <a class="search-playlist" href="#/playlist/${p.id}">
+                <span class="search-playlist-dot" style="background:${p.color}"></span>
+                <span class="search-playlist-name">${escapeHtml(p.name)}</span>
+                <span class="search-playlist-count">${p.songCount} 首</span>
+              </a>`).join('')}
+          </div>
+        </div>` : ''}
+      ${res.songs.length ? `
+        <div class="search-group-title">歌曲</div>
+        <div id="search-songs"></div>` : ''}`;
+
+    const listEl = body.querySelector('#search-songs');
+    if (!listEl) return;
+    renderSongList(listEl, res.songs, {
+      hearts: new Set(favoriteIds),
+      onPlay: async (song, idx) => {
+        const player = await getPlayer();
+        if (player) await player.playAll(res.songs, idx);
+      },
+      onToggleHeart: async (song) => {
+        const r = await store.toggleFavorite(song.id);
+        showToast(r.fav ? '已收藏 ♥' : '已取消收藏');
+        await drawSearch();
+      },
+      onMore: (song) => showSongActions(song, { onChanged: drawSearch }),
+    });
+  }
+
+  /* ---------- 首页总览 ---------- */
+  async function drawHome() {
     const songs = await store.listSongs();
     if (!songs.length) {
       body.innerHTML = `
@@ -145,6 +208,19 @@ root.innerHTML = `
       card.onclick = () => { location.hash = card.dataset.go; };
     });
   }
+
+  searchInput.addEventListener('input', debounce(() => {
+    state.query = searchInput.value;
+    clearBtn.hidden = !state.query;
+    draw();
+  }, 200));
+  clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    state.query = '';
+    clearBtn.hidden = true;
+    draw();
+    searchInput.focus();
+  });
 
   await draw();
   return () => unsubs.forEach((u) => u());

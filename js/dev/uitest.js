@@ -67,8 +67,13 @@ async function resetData() {
   for (const t of ['songs', 'playlists', 'playlist_songs', 'favorites', 'history', 'settings', 'player_state']) {
     await win.__adapter?.clear(t);
   }
+  // 若当前已在首页，hash 赋值相同值不会触发重渲染，先绕一下强制刷新
+  if (win.location.hash === '#/home') {
+    win.location.hash = '#/me';
+    await sleep(150);
+  }
   win.location.hash = '#/home';
-  await sleep(700);
+  await waitFor(() => doc.querySelector('#page .home-avatar'), 4000);
 }
 
 /* ============ 检查项 ============ */
@@ -247,6 +252,76 @@ check('首页左上角显示用户头像，点击进入「我的」', async () =
   avatar.click();
   await sleep(700);
   assert(win.location.hash === '#/me', `点击头像应进入我的，实际 ${win.location.hash}`);
+});
+
+check('首页搜索：按歌名找到歌曲并可播放', async () => {
+  await resetData();
+  await injectDev();
+  await win.__seed(); // 6 首合成歌曲（含「晴天」「海阔天空」「七里香」）
+  await nav('#/home');
+  const input = doc.querySelector('#home-search');
+  assert(input, '首页应有搜索框');
+  input.value = '晴天';
+  input.dispatchEvent(new win.Event('input', { bubbles: true }));
+  const listOf = () => [...doc.querySelectorAll('#home-body .song-title')].map((e) => e.textContent);
+  await waitFor(() => listOf().includes('晴天'), 4000);
+  const titles = listOf();
+  assert(titles.length === 1, `「晴天」应只匹配 1 首，实际 ${JSON.stringify(titles)}`);
+  assert(doc.getElementById('home-body').textContent.includes('找到 1 个结果'), '应显示结果数量');
+  // 首页总览内容应让位给搜索结果
+  assert(!doc.querySelector('.daily-row'), '搜索时不应同时显示今日推荐');
+  // 点击播放
+  doc.querySelector('#home-body .song-item').click();
+  await sleep(900);
+  assert(doc.getElementById('mini-title')?.textContent === '晴天', '点击结果应开始播放该歌曲');
+});
+
+check('首页搜索：可搜到歌单', async () => {
+  await resetData();
+  await injectDev();
+  await win.__store.createPlaylist('通勤路上的歌');
+  await nav('#/home');
+  const input = doc.querySelector('#home-search');
+  input.value = '通勤';
+  input.dispatchEvent(new win.Event('input', { bubbles: true }));
+  await waitFor(() => doc.querySelector('.search-playlist'), 4000);
+  const name = doc.querySelector('.search-playlist .search-playlist-name').textContent;
+  assert(name === '通勤路上的歌', `歌单结果不正确：${name}`);
+  // 点击进入歌单详情
+  doc.querySelector('.search-playlist').click();
+  await waitFor(() => win.location.hash.startsWith('#/playlist/'), 3000);
+});
+
+check('首页搜索：无匹配时给出提示，清空后恢复首页', async () => {
+  await resetData();
+  await injectDev();
+  await win.__seed();
+  await nav('#/home');
+  const input = doc.querySelector('#home-search');
+  input.value = 'zzz不存在的歌';
+  input.dispatchEvent(new win.Event('input', { bubbles: true }));
+  await waitFor(() => doc.getElementById('home-body').textContent.includes('没有找到'), 4000);
+  // 清空
+  input.value = '';
+  input.dispatchEvent(new win.Event('input', { bubbles: true }));
+  await waitFor(() => !!doc.querySelector('.daily-row'), 4000);
+  assert(!doc.getElementById('home-body').textContent.includes('没有找到'), '清空后应恢复首页总览');
+});
+
+check('快速连续切换页面不会显示错乱（渲染竞态）', async () => {
+  await resetData();
+  await injectDev();
+  await win.__store.createPlaylist('竞态自检歌单');
+  const pls = await win.__store.listPlaylists();
+  // 连续切换三个页面，不等中间渲染完成
+  win.location.hash = '#/playlist/' + pls[0].id;
+  win.location.hash = '#/library/songs';
+  win.location.hash = '#/home';
+  await waitFor(() => doc.querySelector('#page .home-avatar'), 5000);
+  await sleep(1500); // 给可能迟到的旧渲染留出覆盖窗口
+  assert(win.location.hash === '#/home', `地址应停在首页，实际 ${win.location.hash}`);
+  assert(doc.querySelector('#page .home-search'), '首页搜索框应存在（页面被旧渲染覆盖了）');
+  assert(!doc.getElementById('page').textContent.includes('歌单不存在'), '不应残留歌单页内容');
 });
 
 /* ============ 运行 ============ */
