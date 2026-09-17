@@ -31,6 +31,8 @@ export async function render(root, tab = 'songs') {
     </div>
     <div id="lib-body"></div>`;
 
+  // pageState 跨 renderBody 保留，用于在重渲染后仍然展示上次导入结果
+  const pageState = { lastImport: '' };
   const unsubs = [
     bus.on('songs:changed', renderBody),
     bus.on('favorites:changed', renderBody),
@@ -39,7 +41,7 @@ export async function render(root, tab = 'songs') {
   const body = root.querySelector('#lib-body');
 
   async function renderBody() {
-    if (tab === 'songs') await renderSongsTab(body);
+    if (tab === 'songs') await renderSongsTab(body, pageState);
     else {
       clearDock(); // 收藏/歌单页签不需要导入悬浮按钮
       if (tab === 'favorites') await renderFavoritesTab(body);
@@ -51,7 +53,7 @@ export async function render(root, tab = 'songs') {
 }
 
 /* ============ 子页签：本地音乐 ============ */
-async function renderSongsTab(body) {
+async function renderSongsTab(body, pageState = { lastImport: '' }) {
   const state = { query: '', sortBy: 'addedAt', selectable: false, selected: new Set() };
   body.innerHTML = `
     <div class="toolbar">
@@ -65,7 +67,8 @@ async function renderSongsTab(body) {
       </select>
       <button class="btn" id="lib-multi" style="padding:8px 14px">多选</button>
     </div>
-    <div id="import-panel"></div>
+    <div id="import-panel">${pageState.lastImport
+      ? `<div class="import-panel" style="font-size:13px">✅ ${escapeHtml(pageState.lastImport)}</div>` : ''}</div>
     <div id="lib-count" class="page-sub" style="margin:0 0 8px"></div>
     <div id="lib-list"></div>
     <input type="file" id="f-files" multiple accept="audio/*,.mp3,.m4a,.flac,.ogg,.wav,.aac" hidden>
@@ -183,9 +186,10 @@ async function renderSongsTab(body) {
   const fileInput = body.querySelector('#f-files');
   const folderInput = body.querySelector('#f-folder');
   const handleFiles = async (e) => {
-    const files = e.target.files;
+    // 必须先做数组快照：清空 input.value 会使原来的 FileList 立刻变空
+    const files = [...(e.target.files || [])];
     e.target.value = '';
-    if (!files?.length) return;
+    if (!files.length) return;
     importPanel.innerHTML = `
       <div class="import-panel">
         <div style="font-weight:600;font-size:14px">正在导入音乐…</div>
@@ -204,11 +208,12 @@ async function renderSongsTab(body) {
     if (result.skipped) parts.push(`跳过重复 ${result.skipped} 首`);
     if (result.unsupported) parts.push(`不支持格式 ${result.unsupported} 个`);
     if (result.failed) parts.push(`读取失败 ${result.failed} 个`);
-    showToast(parts.join('，'));
+    showToast(`导入完成：${parts.join('，')}`);
+    // 结果保存在 pageState 里：待会儿 songs:changed 触发的重渲染也会把它画出来
+    pageState.lastImport = parts.join('，');
     bus.emit('songs:changed');
-    importPanel.innerHTML = `<div class="import-panel" style="font-size:13px">✅ ${parts.join('，')}</div>`;
-    setTimeout(() => { importPanel.innerHTML = ''; }, 4000);
     await reload();
+    importPanel.innerHTML = `<div class="import-panel" style="font-size:13px">✅ ${escapeHtml(pageState.lastImport)}</div>`;
   };
   fileInput.addEventListener('change', handleFiles);
   folderInput.addEventListener('change', handleFiles);

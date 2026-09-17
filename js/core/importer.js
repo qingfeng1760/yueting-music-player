@@ -5,7 +5,8 @@ import { store } from './store.js';
 /**
  * @param {FileList|File[]} files
  * @param {{onProgress?: (p:{current:number,total:number,name:string})=>void}} opts
- * @returns {Promise<{added:number, skipped:number, unsupported:number, failed:number}>}
+ * @returns {Promise<{added:number, skipped:number, imported:Array, unsupported:number, failed:number}>}
+ *   added/skipped 为「数量」，imported 为实际入库的歌曲对象
  */
 export async function importFiles(files, { onProgress } = {}) {
   const all = [...files];
@@ -23,5 +24,12 @@ export async function importFiles(files, { onProgress } = {}) {
     onProgress?.({ current: i + 1, total: audios.length, name: audios[i].name });
   }
   const { added, skipped } = await store.importSongs(items);
-  return { added, skipped, unsupported, failed };
+  return {
+    added: added.length,
+    skipped: skipped.length,
+    imported: added,
+    skippedNames: skipped,
+    unsupported,
+    failed,
+  };
 }

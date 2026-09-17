@@ -324,6 +324,76 @@ check('快速连续切换页面不会显示错乱（渲染竞态）', async () =
   assert(!doc.getElementById('page').textContent.includes('歌单不存在'), '不应残留歌单页内容');
 });
 
+/* ============ 真实文件导入（music） ============ */
+const REAL_MUSIC = { name: 'test-song.mp3', size: 1085150 };
+const realMusicUrl = '/music/' + encodeURIComponent(REAL_MUSIC.name);
+
+check('导入真实音乐文件：解析元数据并入库', async () => {
+  await resetData();
+  await injectDev();
+  const r = await win.__importFromUrl(realMusicUrl, REAL_MUSIC.name);
+  assert(r.added === 1, `应新增 1 首，实际 ${JSON.stringify(r)}`);
+  assert(r.unsupported === 0, '文件应被识别为音频');
+  assert(r.failed === 0, '不应有读取失败');
+  const songs = await win.__store.listSongs();
+  assert(songs.length === 1, `曲库应有 1 首，实际 ${songs.length}`);
+  const s = songs[0];
+  assert(s.title && s.title.length > 0, '标题不应为空');
+  assert(s.size === REAL_MUSIC.size, `文件大小应为 ${REAL_MUSIC.size}，实际 ${s.size}`);
+  assert(s.blob && s.blob.size === REAL_MUSIC.size, '音频本体应被完整保存');
+  assert(s.mime === 'audio/mpeg', `格式应为 audio/mpeg，实际 ${s.mime}`);
+  // 该文件没有 ID3 标签，应走文件名兜底（"歌手 - 歌名"格式不成立时整段作为歌名）
+  assert(s.title.includes('测试歌曲'), `标题应来自文件名，实际「${s.title}」`);
+  window.__realSong = { title: s.title, artist: s.artist, duration: s.duration, size: s.size };
+});
+
+check('导入真实音乐文件：出现在音乐库并可播放', async () => {
+  await nav('#/library/songs');
+  const titles = [...doc.querySelectorAll('#lib-list .song-title')].map((e) => e.textContent);
+  assert(titles.includes(window.__realSong.title), `音乐库应显示该歌曲，实际 ${JSON.stringify(titles)}`);
+  // 播放（真实音频，验证浏览器能解码）
+  doc.querySelector('#lib-list .song-item').click();
+  await sleep(2000);
+  assert(doc.getElementById('mini-title')?.textContent === window.__realSong.title, '迷你条应显示该歌曲');
+  const playing = await win.__player.playing;
+  const duration = await win.__player.audio.duration;
+  window.__realPlay = { playing, duration: Number.isFinite(duration) ? Math.round(duration) : null };
+  assert(playing || (Number.isFinite(duration) && duration > 0),
+    `真实音频应能播放或至少解码出时长，实际 playing=${playing} duration=${duration}`);
+});
+
+check('导入真实音乐文件：重复导入被跳过（去重）', async () => {
+  const r = await win.__importFromUrl(realMusicUrl, REAL_MUSIC.name);
+  assert(r.added === 0, `重复导入不应新增，实际新增 ${r.added}`);
+  assert(r.skipped === 1, `应提示跳过 1 首，实际 ${r.skipped}`);
+  const songs = await win.__store.listSongs();
+  assert(songs.length === 1, `曲库仍应为 1 首，实际 ${songs.length}`);
+});
+
+check('通过界面导入真实文件：进度与结果文案正确', async () => {
+  await resetData();
+  await injectDev();
+  await nav('#/library/songs');
+  // 在应用页面内取真实文件、构造 File 并塞进文件输入框，等价于用户选文件
+  await win.eval(`(async () => {
+    const resp = await fetch(${JSON.stringify(realMusicUrl)});
+    const blob = await resp.blob();
+    const input = document.getElementById('f-files');
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], ${JSON.stringify(REAL_MUSIC.name)}, { type: 'audio/mpeg' }));
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await waitFor(() => (doc.getElementById('import-panel')?.textContent || '').includes('新增'), 20000)
+    .catch(() => { throw new Error(`导入面板未出现结果文案，最后内容：「${doc.getElementById('import-panel')?.textContent || '(空)'}」`); });
+  const text = doc.getElementById('import-panel').textContent.replace(/\s+/g, ' ');
+  assert(text.includes('新增 1 首'), `导入结果文案不正确：「${text}」`);
+  assert(!text.includes('[object'), `文案里出现了对象字面量（数量与数组混用）：「${text}」`);
+  const songs = await win.__store.listSongs();
+  assert(songs.length === 1, `曲库应有 1 首，实际 ${songs.length}`);
+  await waitFor(() => doc.querySelectorAll('#lib-list .song-item').length === 1, 5000);
+});
+
 /* ============ 运行 ============ */
 (async () => {
   await appReady();
