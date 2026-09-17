@@ -26,11 +26,19 @@ python -m http.server 8080
 
 ```bash
 npm install        # 安装开发测试依赖（fake-indexeddb，仅测试用）
-npm test           # Node 单元测试（存储层/队列/推荐/歌单/历史/统计备份/边界）
+npm test           # Node 单元测试（存储层/队列/推荐/歌单/历史/统计备份/搜索/配色/边界）
 ```
 
-浏览器端验收（可选）：启动本地服务器后访问 `http://localhost:8080/tests.html`（若存在）或直接手动操作页面。
-`js/dev/seed.js` 是**开发辅助模块**，只在被显式注入时生效，正常使用不会加载，可用于造测试数据：
+浏览器端测试页（需先启动本地服务器）：
+
+| 页面 | 作用 |
+|---|---|
+| `/tests.html` | 存储层与推荐逻辑自检，跑在真实 IndexedDB 上（独立数据库 `yueting-selftest`） |
+| `/uitest.html` | 界面自检：用 iframe 驱动真实 App 做布局与交互断言（独立数据库 `yueting-uitest`） |
+
+两个测试页都用独立数据库，不会影响你的音乐数据。
+
+`js/dev/` 下是**开发辅助模块**，只在被显式注入或访问测试页时生效，正常使用不会加载：
 
 ```js
 // 在页面控制台执行（需先注入 /js/dev/seed.js）
