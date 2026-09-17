@@ -8,7 +8,8 @@
     "test": "node --test",
     "serve": "npx http-server -p 8123 -c-1",
     "build:dist": "node scripts/build-dist.mjs",
-    "icon": "node scripts/gen-icon.mjs && tauri icon icon-src.png",
+    "icon": "node scripts/gen-icon.mjs && tauri icon assets/icon-src.png",
+    "clean": "cargo clean",
     "app:dev": "tauri dev",
     "app:build": "tauri build"
   },

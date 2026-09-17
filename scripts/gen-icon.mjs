@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const S = 1024;
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const OUT = join(root, 'icon-src.png');
+const OUT = join(root, 'assets', 'icon-src.png');
 
 const FROM = [30, 136, 229];   // #1e88e5
 const TO = [17, 82, 156];      // 更深的蓝，右下

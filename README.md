@@ -82,5 +82,32 @@ npm run icon          # 重新生成应用图标
 
 ## 文档
 
-- [PRD.md](./PRD.md) —— 产品需求与验收标准
+- [docs/PRD.md](./docs/PRD.md) —— 产品需求与验收标准
 - [docs/页面结构与交互设计-v1.md](./docs/页面结构与交互设计-v1.md) —— 页面结构与交互设计
+
+## 目录结构
+
+```
+yueting-music-player/
+├─ index.html + css/ + js/ + vendor/   应用本体（浏览器版入口，路径结构勿动）
+├─ tests.html / uitest.html            浏览器测试页（依赖根目录相对路径）
+├─ docs/                               PRD 与设计文档
+├─ test/                               Node 单元测试
+├─ scripts/                            构建/图标脚本
+├─ assets/                             图标源图
+├─ src-tauri/                          Tauri 桌面壳（打包配置与 Rust 代码）
+├─ release/                            exe 发布包（构建产物，不入库）
+└─ music/                              个人音乐（不入库）
+```
+
+## 清理编译缓存
+
+Rust 编译缓存（`src-tauri/target/`）是大头：debug 约 3 GB、release 约 1.4 GB，都不入库。
+
+```bash
+npm run clean         # 清空全部编译缓存，立刻释放约 4.3 GB
+```
+
+- 代价：下次 `npm run app:build` 需要全量重编（约 10 分钟；crate 下载有镜像缓存，不受影响）
+- 只想省空间又想保留打包速度：手动删 `src-tauri/target/debug`（约 3 GB），保留 `release` 走增量编译
+- exe 发布包在 `release/`（`悦听.exe` 绿色版 + NSIS 安装包 + 使用说明），删了也能用 `npm run app:build` 重新生成
