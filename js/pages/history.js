@@ -5,6 +5,7 @@ import { escapeHtml, fmtTime, debounce } from '../core/util.js';
 import { showToast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
 import { actionSheet } from '../ui/sheet.js';
+import { pageHeader, bindBack } from '../ui/nav.js';
 
 async function getPlayer() {
   try {
@@ -19,14 +20,12 @@ async function getPlayer() {
 export async function render(root) {
   const state = { query: '' };
   root.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h1 class="page-title" style="margin:0">历史记录</h1>
-      <button class="btn btn-danger" id="his-clear" style="padding:7px 14px">清空</button>
-    </div>
+    ${pageHeader('历史记录', { rightHtml: '<button class="btn btn-danger" id="his-clear" style="padding:7px 14px">清空</button>' })}
     <div class="toolbar">
       <input class="search-input" id="his-search" placeholder="搜索历史中的歌名 / 歌手">
     </div>
     <div id="his-body"></div>`;
+  bindBack(root, '#/me');
   const bodyEl = root.querySelector('#his-body');
   const unsubs = [bus.on('songs:changed', draw)];
 

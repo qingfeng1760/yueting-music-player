@@ -1,8 +1,9 @@
 // 游戏娱乐：v1 占位页（卡片布局已留好，后续直接填玩法）
+import { pageHeader, bindBack } from '../ui/nav.js';
+
 export async function render(root) {
   root.innerHTML = `
-    <h1 class="page-title">游戏娱乐</h1>
-    <div class="page-sub">用你的本地音乐玩点小游戏，功能开发中</div>
+    ${pageHeader('游戏娱乐', { sub: '用你的本地音乐玩点小游戏，功能开发中' })}
 
     <div class="game-card">
       <span class="game-icon"></span>
@@ -26,4 +27,5 @@ export async function render(root) {
       <span class="empty-icon">🎮</span>
       玩法还在准备中<br>当前版本先把入口留在这里，不影响听歌
     </div>`;
+  bindBack(root, '#/me');
 }

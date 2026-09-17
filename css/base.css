@@ -57,6 +57,31 @@ body {
 }
 .dock > * { pointer-events: auto; }
 
+/* ===== 页面标题栏 ===== */
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  min-height: 34px;
+}
+.page-head-main { flex: 1; min-width: 0; }
+.page-head .page-title { margin: 0; font-size: 22px; }
+.page-head-sub { font-size: 12.5px; color: var(--text-2); margin-top: 3px; }
+.back-btn {
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 6px 4px 0;
+  margin-left: -4px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+.back-btn:hover { background: var(--surface-2); }
+
 /* ===== 通用组件 ===== */
 .page-title { font-size: 22px; font-weight: 700; margin: 4px 0 14px; }
 .page-sub { color: var(--text-2); font-size: 13px; margin: -10px 0 14px; }

@@ -124,6 +124,54 @@ check('多选操作条不遮挡底部导航', async () => {
   assert(doc.querySelector('#dock .fab'), '退出多选后应恢复导入悬浮按钮');
 });
 
+/** 直接以某个地址重新加载 iframe（模拟直接打开二级页面链接） */
+async function reloadAt(hash) {
+  frame.src = `index.html?db=yueting-uitest${hash}`;
+  await sleep(1500);
+  await appReady();
+  doc = frame.contentDocument;
+  win = frame.contentWindow;
+  await sleep(400);
+}
+
+/* ============ 检查项 ============ */
+
+check('二级页面左上角有返回按钮', async () => {
+  await resetData();
+  const pages = ['#/liked', '#/history', '#/games', '#/settings'];
+  for (const h of pages) {
+    await nav(h);
+    const btn = doc.querySelector('#page [data-back]');
+    assert(btn, `${h} 缺少返回按钮`);
+    const b = rect(btn);
+    const pageR = rect(doc.getElementById('page'));
+    assert(b.left - pageR.left < 60, `${h} 返回按钮不在左侧（left=${Math.round(b.left - pageR.left)}px）`);
+    assert(b.top - pageR.top < 60, `${h} 返回按钮不在顶部（top=${Math.round(b.top - pageR.top)}px）`);
+  }
+  // 歌单详情页
+  await injectDev();
+  const pl = await win.__store.createPlaylist('返回按钮自检');
+  await nav('#/playlist/' + pl.id);
+  assert(doc.querySelector('#page [data-back]'), '歌单详情页缺少返回按钮');
+});
+
+check('点返回按钮回到上一页（从「我的」进入的场景）', async () => {
+  await reloadAt('#/me');
+  await nav('#/settings');
+  doc.querySelector('#page [data-back]').click();
+  await sleep(700);
+  assert(win.location.hash === '#/me', `期望回到 #/me，实际 ${win.location.hash}`);
+});
+
+check('直接打开二级页面时，返回按钮回退到兜底页面', async () => {
+  await reloadAt('#/history'); // 栈里只有这一页，没有上一页
+  assert(doc.querySelector('#page [data-back]'), '历史页缺少返回按钮');
+  doc.querySelector('#page [data-back]').click();
+  await sleep(700);
+  assert(win.location.hash === '#/me', `深链打开时返回应回退到 #/me，实际 ${win.location.hash}`);
+  await reloadAt('#/home');
+});
+
 /* ============ 运行 ============ */
 (async () => {
   await appReady();

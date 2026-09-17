@@ -2,6 +2,7 @@ import { initTheme } from './core/util.js';
 import { store } from './core/store.js';
 import { IDBAdapter } from './core/db.js';
 import { clearDock, updateBottomBars } from './ui/dock.js';
+import { recordNav } from './ui/nav.js';
 
 const routes = [
   { re: /^#\/home$/, tab: 'home', load: () => import('./pages/home.js') },
@@ -28,6 +29,7 @@ async function render() {
   const hash = location.hash || '#/home';
   const route = routes.find((r) => r.re.test(hash)) || routes[0];
   const params = hash.match(route.re)?.slice(1) || [];
+  recordNav(hash);
   try {
     if (typeof currentUnmount === 'function') currentUnmount();
     currentUnmount = null;

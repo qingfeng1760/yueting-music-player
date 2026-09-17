@@ -9,6 +9,7 @@ import { playlistPicker } from '../ui/playlistPicker.js';
 import { showSongActions } from '../ui/songActions.js';
 import { renderSongList } from '../ui/songlist.js';
 import { setDock, clearDock, dockEl } from '../ui/dock.js';
+import { pageHeader, bindBack } from '../ui/nav.js';
 import { PLAYLIST_COLORS } from '../core/store.js';
 
 async function getPlayer() {
@@ -52,14 +53,17 @@ export async function render(root, playlistId) {
   const state = { selectable: false, selected: new Set() };
   let detail = await store.getPlaylistDetail(playlistId);
   if (!detail) {
-    root.innerHTML = `<div class="empty"><span class="empty-icon"></span>歌单不存在或已被删除</div>`;
+    root.innerHTML = `${pageHeader('歌单')}<div class="empty"><span class="empty-icon">📂</span>歌单不存在或已被删除</div>`;
+    bindBack(root, '#/library/playlists');
     return;
   }
 
   root.innerHTML = `
+    ${pageHeader('歌单')}
     <div id="pd-head"></div>
     <div class="toolbar" id="pd-tools"></div>
     <div id="pd-list"></div>`;
+  bindBack(root, '#/library/playlists');
   const headEl = root.querySelector('#pd-head');
   const toolsEl = root.querySelector('#pd-tools');
   const listEl = root.querySelector('#pd-list');

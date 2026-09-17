@@ -6,6 +6,7 @@ import { rankSongs } from '../core/rec.js';
 import { showToast } from '../ui/toast.js';
 import { showSongActions } from '../ui/songActions.js';
 import { renderSongList } from '../ui/songlist.js';
+import { pageHeader, bindBack } from '../ui/nav.js';
 
 async function getPlayer() {
   try {
@@ -20,10 +21,10 @@ async function getPlayer() {
 export async function render(root) {
   let seedCounter = 0;
   root.innerHTML = `
-    <h1 class="page-title">喜欢</h1>
-    <div class="page-sub">根据你的播放次数和收藏习惯自动生成，多听几次就会更准</div>
+    ${pageHeader('喜欢', { sub: '根据你的播放次数和收藏习惯自动生成，多听几次就会更准' })}
     <div id="liked-head"></div>
     <div id="liked-list"></div>`;
+  bindBack(root, '#/me');
   const headEl = root.querySelector('#liked-head');
   const listEl = root.querySelector('#liked-list');
   const unsubs = [bus.on('favorites:changed', draw), bus.on('songs:changed', draw)];

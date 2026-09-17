@@ -4,6 +4,7 @@ import { bus } from '../core/bus.js';
 import { applyTheme, getThemePref, fmtTime } from '../core/util.js';
 import { showToast } from '../ui/toast.js';
 import { confirmDialog } from '../ui/confirm.js';
+import { pageHeader, bindBack } from '../ui/nav.js';
 
 function fmtBytes(n) {
   if (!n) return '0 B';
@@ -23,9 +24,10 @@ function fmtDuration(sec) {
 
 export async function render(root) {
   root.innerHTML = `
-    <h1 class="page-title">数据与设置</h1>
+    ${pageHeader('数据与设置')}
     <div id="set-body"></div>
     <input type="file" id="set-import-file" accept=".json,application/json" hidden>`;
+  bindBack(root, '#/me');
   const body = root.querySelector('#set-body');
 
   async function draw() {
