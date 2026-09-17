@@ -1,0 +1,41 @@
+/* ===== 主题变量 ===== */
+:root {
+  --primary: #1e88e5;
+  --primary-strong: #1565c0;
+  --on-primary: #ffffff;
+  --danger: #e53935;
+  --success: #43a047;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 10px rgba(0, 0, 0, .07);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .18);
+  --font: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+html[data-theme="light"] {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eceff3;
+  --text: #1c1e21;
+  --text-2: #65676b;
+  --divider: #e4e6eb;
+  --chip-bg: #e3eefc;
+  --chip-text: #1558a8;
+  --mini-bg: rgba(255, 255, 255, .96);
+  --overlay: rgba(0, 0, 0, .45);
+}
+
+html[data-theme="dark"] {
+  --bg: #101214;
+  --surface: #1b1e22;
+  --surface-2: #26292e;
+  --text: #e8eaed;
+  --text-2: #9aa0a6;
+  --divider: #2f3338;
+  --chip-bg: #203352;
+  --chip-text: #8ab4f8;
+  --mini-bg: rgba(27, 30, 34, .96);
+  --overlay: rgba(0, 0, 0, .6);
+  --shadow: 0 2px 10px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .5);
+}
