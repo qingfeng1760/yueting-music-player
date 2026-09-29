@@ -80,10 +80,23 @@ npm run icon          # 重新生成应用图标
 - 清空浏览器「站点数据 / Cookie 及网站数据」会连同音乐一起删除。
 - 游戏娱乐模块当前为占位页，玩法待定。
 
-## 文档
+## 数据模型
 
-- [docs/PRD.md](./docs/PRD.md) —— 产品需求与验收标准
-- [docs/页面结构与交互设计-v1.md](./docs/页面结构与交互设计-v1.md) —— 页面结构与交互设计
+页面代码**只调 `js/core/store.js`**，不直接碰数据库；`store.init(adapter)` 的适配器由 `js/app.js` 注入 ——
+浏览器版注入 `js/core/db.js` 的 `IDBAdapter`（IndexedDB），测试注入 `js/core/memoryAdapter.js` 的内存实现。
+将来接云端同步时只需换一个适配器，页面代码不变。
+
+| 数据 | 内容 |
+|---|---|
+| songs | id、标题、歌手、专辑、时长、封面、格式、大小、导入时间、播放次数、最近播放时间、音频 Blob |
+| playlists | id、名称、封面色、创建时间、排序号 |
+| playlist_songs | 歌单 ↔ 歌曲（多对多，歌内有排序） |
+| favorites | 歌曲 id、收藏时间 |
+| history | 歌曲 id、播放时间点（每次播放一条） |
+| settings | 主题、默认播放模式、是否记录历史等 |
+| player_state | 当前队列、当前歌、进度、播放模式 |
+
+音频文件本体与其余小数据同样存在浏览器数据库（IndexedDB）里。
 
 ## 目录结构
 
@@ -91,7 +104,6 @@ npm run icon          # 重新生成应用图标
 yueting-music-player/
 ├─ index.html + css/ + js/ + vendor/   应用本体（浏览器版入口，路径结构勿动）
 ├─ tests.html / uitest.html            浏览器测试页（依赖根目录相对路径）
-├─ docs/                               PRD 与设计文档
 ├─ test/                               Node 单元测试
 ├─ scripts/                            构建/图标脚本
 ├─ assets/                             图标源图
@@ -111,3 +123,7 @@ npm run clean         # 清空全部编译缓存，立刻释放约 4.3 GB
 - 代价：下次 `npm run app:build` 需要全量重编（约 10 分钟；crate 下载有镜像缓存，不受影响）
 - 只想省空间又想保留打包速度：手动删 `src-tauri/target/debug`（约 3 GB），保留 `release` 走增量编译
 - exe 发布包在 `release/`（`悦听.exe` 绿色版 + NSIS 安装包 + 使用说明），删了也能用 `npm run app:build` 重新生成
+
+## 许可证
+
+[MIT](./LICENSE)
